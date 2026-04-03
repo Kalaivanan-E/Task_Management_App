@@ -1,6 +1,9 @@
-package com.example.task_management.Service.impl;
+package com.example.task_management.service.impl;
 
-import com.example.task_management.Service.AuthService;
+import com.example.task_management.config.JwtUtil;
+import com.example.task_management.dto.Auth.AuthResponse;
+import com.example.task_management.dto.Auth.LoginRequest;
+import com.example.task_management.service.AuthService;
 import com.example.task_management.dto.Auth.RegisterRequest;
 import com.example.task_management.entity.User;
 import com.example.task_management.repository.UserRepository;
@@ -15,6 +18,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private UserRepository userRepo;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -39,5 +44,19 @@ public class AuthServiceImpl implements AuthService {
 
         return "Register Successfully";
 
+    }
+
+    @Override
+    public AuthResponse loginUser(LoginRequest loginRequest) {
+        User user = userRepo.findByEmail(loginRequest.getEmail())
+                .orElseThrow(()->new RuntimeException("User not found"));
+
+        if(!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
+            throw new RuntimeException("Invalid password");
+        }
+        String accessToken = jwtUtil.generateAccessToken(user.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        return new AuthResponse(accessToken,refreshToken);
     }
 }
